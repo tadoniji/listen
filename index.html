@@ -198,14 +198,17 @@ let typed = "";
 const typedBg = document.getElementById("typed-background");
 const hiddenInput = document.getElementById("hidden-input");
 
+// détecter mobile
+const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 // focus automatique sur mobile
 function focusInput() {
   hiddenInput.focus();
 }
-
-// focus dès que la page est visible ou au toucher
-window.addEventListener("load", focusInput);
-window.addEventListener("touchstart", focusInput);
+if(isMobile){
+  window.addEventListener("load", focusInput);
+  window.addEventListener("touchstart", focusInput);
+}
 
 // Pages
 const pages = {
@@ -288,7 +291,7 @@ function reset() {
   updateTypedBg();
 }
 
-// Fonction unique pour gérer la saisie
+// fonction unique pour gérer la saisie
 function handleTyping(char) {
   typed += char.toLowerCase();
   typed = typed.slice(-40);
@@ -328,18 +331,20 @@ function handleTyping(char) {
   }
 }
 
-// desktop listener
-document.addEventListener("keydown", (e) => {
-  if(e.key === "Escape") { reset(); return; }
-  if(e.key.length === 1) handleTyping(e.key);
-});
-
-// mobile listener sur le champ invisible
-hiddenInput.addEventListener("input", (e) => {
-  handleTyping(e.target.value);
-  hiddenInput.value = ""; // vide le champ pour rester invisible
-});
+// listener desktop / mobile
+if(isMobile){
+  hiddenInput.addEventListener("input", (e) => {
+    handleTyping(e.target.value);
+    hiddenInput.value = ""; // vide le champ invisible
+  });
+} else {
+  document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape") { reset(); return; }
+    if(e.key.length === 1) handleTyping(e.key);
+  });
+}
 </script>
+
 
 </body>
 </html>
