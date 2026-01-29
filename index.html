@@ -260,30 +260,7 @@ function reset() {
   updateTypedBg();
 }
 
-// tapage
-document.addEventListener("keydown", (e) => {
-  if(e.key === "Escape") { reset(); return; }
 
-  if(e.key.length === 1) {
-    typed += e.key.toLowerCase();
-    typed = typed.slice(-40);
-    updateTypedBg();
-  }
-
-  // Esc
-  Object.keys(pages).forEach(page => {
-    if(typed.includes(page)) show(page);
-  });
-
-  // titres
-  [...music.albums, ...music.singles].forEach(item => {
-    if(typed.includes(item.title.toLowerCase())) {
-      window.open(item.link, "_blank");
-      typed = "";
-      updateTypedBg();
-    }
-  });
-});
 </script>
 
 </body>
