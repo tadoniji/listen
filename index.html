@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Tadoniji</title>
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      background: #f7f7f7;
+      color: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    #home, .page {
+      max-width: 700px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    h1, h2 {
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 1.5rem;
+    }
+
+    li {
+      margin: 0.4rem 0;
+      opacity: 0.9;
+    }
+
+    .hint {
+      margin-top: 1.5rem;
+      font-size: 0.9em;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Everything is already here. -->
+
+  <div id="home">
+    <h1>Tadoniji</h1>
+    <p class="hint">Certains mots ouvrent des pages.</p>
+  </div>
+
+  <div id="catalogue" class="page hidden">
+    <h2>Catalogue</h2>
+    <ul id="catalogue-list"></ul>
+  </div>
+
+  <div id="albums" class="page hidden">
+    <h2>Albums</h2>
+    <ul id="albums-list"></ul>
+  </div>
+
+  <div id="singles" class="page hidden">
+    <h2>Singles</h2>
+    <ul id="singles-list"></ul>
+  </div>
+
+  <div id="ep" class="page hidden">
+    <h2>EP</h2>
+    <ul id="ep-list"></ul>
+  </div>
+
+  <script>
+  let typed = "";
+
+  const pages = {
+    home: document.getElementById("home"),
+    catalogue: document.getElementById("catalogue"),
+    albums: document.getElementById("albums"),
+    singles: document.getElementById("singles"),
+    ep: document.getElementById("ep")
+  };
+
+  /* 🔧 DISCOGRAPHIE TADONIJI */
+  const music = {
+    albums: [
+      {
+        title: "Genesis",
+        link: "https://lien-a-remplacer.com/genesis"
+      },
+      {
+        title: "Paradox",
+        link: "https://lien-a-remplacer.com/paradox"
+      },
+      {
+        title: "Anachronos",
+        link: "https://lien-a-remplacer.com/anachronos"
+      },
+      {
+        title: "Timefall",
+        link: "https://lien-a-remplacer.com/timefall"
+      },
+      {
+        title: "Enemy",
+        link: "https://lien-a-remplacer.com/enemy"
+      }
+    ],
+
+    singles: [
+      {
+        title: "Stand",
+        link: "https://lien-a-remplacer.com/stand"
+      },
+      {
+        title: "The Voices",
+        link: "https://lien-a-remplacer.com/the-voices"
+      },
+      {
+        title: "Travel Spirit",
+        link: "https://lien-a-remplacer.com/travel-spirit"
+      }
+    ],
+
+    ep: [] // volontairement vide si tu ne veux pas séparer albums / EP
+  };
+
+  /* 🧠 Génération des listes */
+  function populate() {
+    const catalogue = [];
+
+    music.albums.forEach(a => catalogue.push(a.title));
+    music.singles.forEach(s => catalogue.push(s.title));
+
+    document.getElementById("catalogue-list").innerHTML =
+      catalogue.map(t => `<li>${t}</li>`).join("");
+
+    document.getElementById("albums-list").innerHTML =
+      music.albums.map(a => `<li>${a.title}</li>`).join("");
+
+    document.getElementById("singles-list").innerHTML =
+      music.singles.map(s => `<li>${s.title}</li>`).join("");
+
+    document.getElementById("ep-list").innerHTML =
+      "<li>—</li>";
+  }
+
+  populate();
+
+  function show(page) {
+    Object.values(pages).forEach(p => p.classList.add("hidden"));
+    pages[page].classList.remove("hidden");
+  }
+
+  function reset() {
+    typed = "";
+    show("home");
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      reset();
+      return;
+    }
+
+    if (e.key.length === 1) {
+      typed += e.key.toLowerCase();
+      typed = typed.slice(-40);
+    }
+
+    // Navigation pages
+    Object.keys(pages).forEach(page => {
+      if (typed.includes(page)) show(page);
+    });
+
+    // Redirections titres
+    [...music.albums, ...music.singles].forEach(item => {
+      if (typed.includes(item.title.toLowerCase())) {
+        window.open(item.link, "_blank");
+        typed = "";
+      }
+    });
+  });
+</script>
+
+
+</body>
+</html>
