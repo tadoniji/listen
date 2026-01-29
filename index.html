@@ -107,6 +107,9 @@
 
 
 
+<input type="text" id="hidden-input" 
+       style="position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px;" 
+       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
 
 <div id="error-popup" class="hidden" style="
   position: fixed;
@@ -193,6 +196,16 @@
 <script>
 let typed = "";
 const typedBg = document.getElementById("typed-background");
+const hiddenInput = document.getElementById("hidden-input");
+
+// focus automatique sur mobile
+function focusInput() {
+  hiddenInput.focus();
+}
+
+// tenter de focus dès que la page est visible
+window.addEventListener("load", focusInput);
+window.addEventListener("touchstart", focusInput); // déclenche focus si l’utilisateur touche l’écran
 
 // Pages
 const pages = {
