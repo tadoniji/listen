@@ -90,6 +90,34 @@
   </style>
 </head>
 <body>
+<div id="hint-button" title="Voir un indice" style="
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  cursor: pointer;
+  background: rgba(0,0,0,0.1);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.85em;
+  font-family: sans-serif;
+  color: #111;
+  transition: 0.2s;
+">Indice</div>
+
+<div id="hint-list" class="hidden" style="
+  position: fixed;
+  top: 40px;
+  right: 10px;
+  background: rgba(255,255,255,0.9);
+  padding: 8px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  font-size: 0.85em;
+  z-index: 3;
+  max-width: 180px;
+">
+</div>
 
 <div id="typed-background"></div>
 
@@ -152,6 +180,61 @@ const music = {
   ep: [] 
 };
 
+const hintButton = document.getElementById("hint-button");
+const hintList = document.getElementById("hint-list");
+
+// hints
+const mainTitles = [
+  ...music.albums.map(a => a.title),
+  ...music.singles.map(s => s.title)
+];
+
+// toggle
+hintButton.addEventListener("click", () => {
+  if(hintList.classList.contains("hidden")) {
+    hintList.innerHTML = mainTitles.join("<br>");
+    hintList.classList.remove("hidden");
+  } else {
+    hintList.classList.add("hidden");
+  }
+});
+
+// Random 
+document.addEventListener("keydown", (e) => {
+  if(e.key === "Escape") { reset(); return; }
+
+  if(e.key.length === 1) {
+    typed += e.key.toLowerCase();
+    typed = typed.slice(-40);
+    updateTypedBg();
+  }
+
+  // Navigation pages
+  Object.keys(pages).forEach(page => {
+    if(typed.includes(page)) show(page);
+  });
+
+  // Redirections titres
+  [...music.albums, ...music.singles].forEach(item => {
+    if(typed.includes(item.title.toLowerCase())) {
+      window.open(item.link, "_blank");
+      typed = "";
+      updateTypedBg();
+    }
+  });
+
+  // 🎲 Trigger Tadoniji : ouvre un titre aléatoire
+  if(typed.includes("tadoniji")) {
+    const randomIndex = Math.floor(Math.random() * mainTitles.length);
+    const randomTitle = mainTitles[randomIndex];
+    const item = [...music.albums, ...music.singles].find(i => i.title === randomTitle);
+    if(item) window.open(item.link, "_blank");
+    typed = "";
+    updateTypedBg();
+  }
+});
+
+  
 // listes
 function populate() {
   const catalogue = [];
