@@ -203,9 +203,9 @@ function focusInput() {
   hiddenInput.focus();
 }
 
-// tenter de focus dès que la page est visible
+// focus dès que la page est visible ou au toucher
 window.addEventListener("load", focusInput);
-window.addEventListener("touchstart", focusInput); // déclenche focus si l’utilisateur touche l’écran
+window.addEventListener("touchstart", focusInput);
 
 // Pages
 const pages = {
@@ -216,7 +216,7 @@ const pages = {
   ep: document.getElementById("ep")
 };
 
-// Discographie 
+// Discographie
 const music = {
   albums: [
     { title: "Genesis", link: "https://playlist.link/genesis" },
@@ -230,7 +230,7 @@ const music = {
     { title: "The Voices", link: "https://youtu.be/bpeY9Yof1lI" },
     { title: "Travel Spirit", link: "https://www.youtube.com/watch?v=r0TpHyHKxOs&list=OLAK5uy_nG4VKgFfc8YF4BbXzPLVpX5mpJZUld9E8" }
   ],
-  ep: [] 
+  ep: []
 };
 
 // hints
@@ -258,7 +258,7 @@ function triggerErrorPopup() {
 // longueur maximale des titres pour délai erreur
 const maxTitleLength = Math.max(...[...music.albums, ...music.singles].map(i => i.title.length));
 
-// fonction pour mettre à jour le fond
+// mettre à jour le fond
 function updateTypedBg() {
   typedBg.textContent = typed.toUpperCase();
 }
@@ -288,15 +288,11 @@ function reset() {
   updateTypedBg();
 }
 
-// listener unique
-document.addEventListener("keydown", (e) => {
-  if(e.key === "Escape") { reset(); return; }
-
-  if(e.key.length === 1) {
-    typed += e.key.toLowerCase();
-    typed = typed.slice(-40);
-    updateTypedBg();
-  }
+// Fonction unique pour gérer la saisie
+function handleTyping(char) {
+  typed += char.toLowerCase();
+  typed = typed.slice(-40);
+  updateTypedBg();
 
   // navigation pages
   Object.keys(pages).forEach(page => {
@@ -305,7 +301,7 @@ document.addEventListener("keydown", (e) => {
 
   // redirections titres
   [...music.albums, ...music.singles].forEach(item => {
-    if(typed.includes(item.title.toLowerCase())){
+    if(typed.includes(item.title.toLowerCase())) {
       window.open(item.link, "_blank");
       typed = "";
       updateTypedBg();
@@ -313,7 +309,7 @@ document.addEventListener("keydown", (e) => {
   });
 
   // Tadoniji → titre aléatoire
-  if(typed.includes("tadoniji")){
+  if(typed.includes("tadoniji")) {
     const randomIndex = Math.floor(Math.random() * mainTitles.length);
     const randomTitle = mainTitles[randomIndex];
     const item = [...music.albums, ...music.singles].find(i => i.title === randomTitle);
@@ -330,10 +326,20 @@ document.addEventListener("keydown", (e) => {
   if(typed.length >= maxTitleLength + 4 && !isValid) {
     triggerErrorPopup();
   }
+}
+
+// desktop listener
+document.addEventListener("keydown", (e) => {
+  if(e.key === "Escape") { reset(); return; }
+  if(e.key.length === 1) handleTyping(e.key);
+});
+
+// mobile listener sur le champ invisible
+hiddenInput.addEventListener("input", (e) => {
+  handleTyping(e.target.value);
+  hiddenInput.value = ""; // vide le champ pour rester invisible
 });
 </script>
-
-
 
 </body>
 </html>
