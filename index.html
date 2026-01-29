@@ -16,6 +16,21 @@
       justify-content: center;
       text-align: center;
     }
+    
+    #typed-background {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8vw; /* très grand */
+  color: rgba(0,0,0,0.05); /* très discret */
+  white-space: pre-wrap;
+  pointer-events: none; /* ne bloque rien */
+  filter: blur(4px);
+  z-index: 1; /* derrière le contenu */
+  text-align: center;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+}
 
     #home, .page {
       max-width: 700px;
@@ -49,6 +64,7 @@
   </style>
 </head>
 <body>
+  <div id="typed-background"></div>
 
   <!-- Everything is already here. -->
 
@@ -80,6 +96,29 @@
   <script>
   let typed = "";
 
+  const typedBg = document.getElementById("typed-background");
+
+  function updateTypedBg() {
+    typedBg.textContent = typed.toUpperCase(); // ou garder minuscule si tu veux
+  }
+
+// Dans ton keydown listener, à la fin
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    reset();
+    return;
+  }
+
+  if (e.key.length === 1) {
+    typed += e.key;
+    typed = typed.slice(-40);
+    updateTypedBg(); // on met à jour le background
+  }
+
+  // Navigation pages et redirection...
+});
+
+  
   const pages = {
     home: document.getElementById("home"),
     catalogue: document.getElementById("catalogue"),
@@ -161,7 +200,9 @@
   function reset() {
     typed = "";
     show("home");
+    updateTypedBg(); // efface le background
   }
+
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
