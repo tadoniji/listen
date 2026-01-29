@@ -90,6 +90,35 @@
   </style>
 </head>
 <body>
+
+
+
+
+<div id="error-popup" class="hidden" style="
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  width: 300px;
+  max-width: 90%;
+  pointer-events: none;
+">
+  <div class="tenor-gif-embed"
+       data-postid="4920656752343349178"
+       data-share-method="host"
+       data-aspect-ratio="1.76991"
+       data-width="100%">
+    <a href="https://tenor.com/view/honkai-star-rail-hsr-sparkle-hsr-sparkle-sparkle-honkai-star-rail-gif-4920656752343349178">
+      Honkai Star Rail Hsr GIF
+    </a> from 
+    <a href="https://tenor.com/search/honkai+star+rail-gifs">Honkai Star Rail GIFs</a>
+  </div>
+</div>
+
+<script async src="https://tenor.com/embed.js"></script>
+
+  
 <div id="hint-button" title="Voir un indice" style="
   position: fixed;
   top: 10px;
@@ -151,10 +180,6 @@
 let typed = "";
 const typedBg = document.getElementById("typed-background");
 
-function updateTypedBg() {
-  typedBg.textContent = typed.toUpperCase();
-}
-
 // Pages
 const pages = {
   home: document.getElementById("home"),
@@ -181,16 +206,12 @@ const music = {
   ep: [] 
 };
 
+// hints
 const hintButton = document.getElementById("hint-button");
 const hintList = document.getElementById("hint-list");
+const mainTitles = [...music.albums.map(a=>a.title), ...music.singles.map(s=>s.title)];
 
-// hints
-const mainTitles = [
-  ...music.albums.map(a => a.title),
-  ...music.singles.map(s => s.title)
-];
-
-// toggle
+// bouton indice
 hintButton.addEventListener("click", () => {
   if(hintList.classList.contains("hidden")) {
     hintList.innerHTML = mainTitles.join("<br>");
@@ -200,69 +221,82 @@ hintButton.addEventListener("click", () => {
   }
 });
 
-// Random 
+// popup GIF erreur
+function triggerErrorPopup() {
+  const popup = document.getElementById("error-popup");
+  popup.classList.remove("hidden");
+  setTimeout(() => popup.classList.add("hidden"), 1000);
+}
+
+// keydown listener unique
 document.addEventListener("keydown", (e) => {
   if(e.key === "Escape") { reset(); return; }
 
-  if(e.key.length === 1) {
+  if(e.key.length === 1){
     typed += e.key.toLowerCase();
     typed = typed.slice(-40);
     updateTypedBg();
   }
 
-  // Navigation pages
+  // navigation pages
   Object.keys(pages).forEach(page => {
     if(typed.includes(page)) show(page);
   });
 
-  // Redirections titres
+  // redirections titres
   [...music.albums, ...music.singles].forEach(item => {
-    if(typed.includes(item.title.toLowerCase())) {
+    if(typed.includes(item.title.toLowerCase())){
       window.open(item.link, "_blank");
       typed = "";
       updateTypedBg();
     }
   });
 
-  // 🎲 Trigger Tadoniji : ouvre un titre aléatoire
-  if(typed.includes("tadoniji")) {
-    const randomIndex = Math.floor(Math.random() * mainTitles.length);
+  // Tadoniji → titre aléatoire
+  if(typed.includes("tadoniji")){
+    const randomIndex = Math.floor(Math.random()*mainTitles.length);
     const randomTitle = mainTitles[randomIndex];
-    const item = [...music.albums, ...music.singles].find(i => i.title === randomTitle);
+    const item = [...music.albums, ...music.singles].find(i=>i.title===randomTitle);
     if(item) window.open(item.link, "_blank");
     typed = "";
     updateTypedBg();
   }
+
+  // Erreur : rien de valide
+  const allTitles = [...music.albums, ...music.singles].map(i=>i.title.toLowerCase());
+  const validPages = Object.keys(pages);
+  const isValid = allTitles.some(t => typed.includes(t)) || validPages.some(p => typed.includes(p)) || typed.includes("tadoniji");
+  if(!isValid && typed.length > 0){
+    triggerErrorPopup();
+  }
 });
 
-  
 // listes
-function populate() {
+function populate(){
   const catalogue = [];
-  music.albums.forEach(a => catalogue.push(a.title));
-  music.singles.forEach(s => catalogue.push(s.title));
+  music.albums.forEach(a=>catalogue.push(a.title));
+  music.singles.forEach(s=>catalogue.push(s.title));
 
-  document.getElementById("catalogue-list").innerHTML = catalogue.map(t => `<li>${t}</li>`).join("");
-  document.getElementById("albums-list").innerHTML = music.albums.map(a => `<li>${a.title}</li>`).join("");
-  document.getElementById("singles-list").innerHTML = music.singles.map(s => `<li>${s.title}</li>`).join("");
+  document.getElementById("catalogue-list").innerHTML = catalogue.map(t=>`<li>${t}</li>`).join("");
+  document.getElementById("albums-list").innerHTML = music.albums.map(a=>`<li>${a.title}</li>`).join("");
+  document.getElementById("singles-list").innerHTML = music.singles.map(s=>`<li>${s.title}</li>`).join("");
   document.getElementById("ep-list").innerHTML = "<li>—</li>";
 }
 
 populate();
 
-function show(page) {
-  Object.values(pages).forEach(p => p.classList.add("hidden"));
+function show(page){
+  Object.values(pages).forEach(p=>p.classList.add("hidden"));
   pages[page].classList.remove("hidden");
 }
 
-function reset() {
+function reset(){
   typed = "";
   show("home");
   updateTypedBg();
 }
-
-
 </script>
+
 
 </body>
 </html>
