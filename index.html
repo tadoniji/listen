@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Tadoniji</title>
-
   <style>
     body {
       margin: 0;
@@ -15,30 +14,64 @@
       align-items: center;
       justify-content: center;
       text-align: center;
+      overflow: hidden;
+      position: relative;
     }
-    
+
     #typed-background {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 8vw; /* très grand */
-  color: rgba(0,0,0,0.05); /* très discret */
-  white-space: pre-wrap;
-  pointer-events: none; /* ne bloque rien */
-  filter: blur(4px);
-  z-index: 1; /* derrière le contenu */
-  text-align: center;
-  font-family: "Helvetica Neue", Arial, sans-serif;
-}
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      font-family: "Courier New", monospace;
+      font-size: 12vw;
+      color: rgba(0, 255, 100, 0.05);
+      white-space: pre-wrap;
+      pointer-events: none;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 0.9;
+      filter: blur(1px) contrast(1.2);
+      animation: jitter 0.15s infinite alternate;
+    }
+
+    @keyframes jitter {
+      0% { transform: translate(0, 0); }
+      25% { transform: translate(-1px, 1px); }
+      50% { transform: translate(1px, -1px); }
+      75% { transform: translate(-1px, 1px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.05),
+        rgba(0,0,0,0.05) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
 
     #home, .page {
       max-width: 700px;
+      position: relative;
+      z-index: 2; 
     }
 
-    .hidden {
-      display: none;
-    }
+    .hidden { display: none; }
 
     h1, h2 {
       font-weight: 400;
@@ -51,185 +84,124 @@
       margin-top: 1.5rem;
     }
 
-    li {
-      margin: 0.4rem 0;
-      opacity: 0.9;
-    }
+    li { margin: 0.4rem 0; opacity: 0.9; }
 
-    .hint {
-      margin-top: 1.5rem;
-      font-size: 0.9em;
-      color: #666;
-    }
+    .hint { margin-top: 1.5rem; font-size: 0.9em; color: #666; }
   </style>
 </head>
 <body>
-  <div id="typed-background"></div>
 
-  <!-- Everything is already here. -->
+<div id="typed-background"></div>
 
-  <div id="home">
-    <h1>Tadoniji</h1>
-    <p class="hint">Certains mots ouvrent des pages.</p>
-  </div>
+<div id="home">
+  <h1>Tadoniji</h1>
+  <p class="hint">Certains mots ouvrent des pages.</p>
+</div>
 
-  <div id="catalogue" class="page hidden">
-    <h2>Catalogue</h2>
-    <ul id="catalogue-list"></ul>
-  </div>
+<div id="catalogue" class="page hidden">
+  <h2>Catalogue</h2>
+  <ul id="catalogue-list"></ul>
+</div>
 
-  <div id="albums" class="page hidden">
-    <h2>Albums</h2>
-    <ul id="albums-list"></ul>
-  </div>
+<div id="albums" class="page hidden">
+  <h2>Albums</h2>
+  <ul id="albums-list"></ul>
+</div>
 
-  <div id="singles" class="page hidden">
-    <h2>Singles</h2>
-    <ul id="singles-list"></ul>
-  </div>
+<div id="singles" class="page hidden">
+  <h2>Singles</h2>
+  <ul id="singles-list"></ul>
+</div>
 
-  <div id="ep" class="page hidden">
-    <h2>EP</h2>
-    <ul id="ep-list"></ul>
-  </div>
+<div id="ep" class="page hidden">
+  <h2>EP</h2>
+  <ul id="ep-list"></ul>
+</div>
 
-  <script>
-  let typed = "";
+<script>
+let typed = "";
+const typedBg = document.getElementById("typed-background");
 
-  const typedBg = document.getElementById("typed-background");
+function updateTypedBg() {
+  typedBg.textContent = typed.toUpperCase();
+}
 
-  function updateTypedBg() {
-    typedBg.textContent = typed.toUpperCase(); // ou garder minuscule si tu veux
-  }
+// Pages
+const pages = {
+  home: document.getElementById("home"),
+  catalogue: document.getElementById("catalogue"),
+  albums: document.getElementById("albums"),
+  singles: document.getElementById("singles"),
+  ep: document.getElementById("ep")
+};
 
-// Dans ton keydown listener, à la fin
+// Discographie 
+const music = {
+  albums: [
+    { title: "Genesis", link: "https://playlist.link/genesis" },
+    { title: "Paradox", link: "https://odesli.co/paradox" },
+    { title: "Anachronos", link: "Erreur interne" },
+    { title: "Timefall", link: "https://album.link/timefall" },
+    { title: "Enemy", link: "Erreur interne" }
+  ],
+  singles: [
+    { title: "Stand", link: "https://song.link/stand" },
+    { title: "The Voices", link: "Erreur interne" },
+    { title: "Travel Spirit", link: "Erreur interne" }
+  ],
+  ep: [] 
+};
+
+// listes
+function populate() {
+  const catalogue = [];
+  music.albums.forEach(a => catalogue.push(a.title));
+  music.singles.forEach(s => catalogue.push(s.title));
+
+  document.getElementById("catalogue-list").innerHTML = catalogue.map(t => `<li>${t}</li>`).join("");
+  document.getElementById("albums-list").innerHTML = music.albums.map(a => `<li>${a.title}</li>`).join("");
+  document.getElementById("singles-list").innerHTML = music.singles.map(s => `<li>${s.title}</li>`).join("");
+  document.getElementById("ep-list").innerHTML = "<li>—</li>";
+}
+
+populate();
+
+function show(page) {
+  Object.values(pages).forEach(p => p.classList.add("hidden"));
+  pages[page].classList.remove("hidden");
+}
+
+function reset() {
+  typed = "";
+  show("home");
+  updateTypedBg();
+}
+
+// tapage
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    reset();
-    return;
-  }
+  if(e.key === "Escape") { reset(); return; }
 
-  if (e.key.length === 1) {
-    typed += e.key;
+  if(e.key.length === 1) {
+    typed += e.key.toLowerCase();
     typed = typed.slice(-40);
-    updateTypedBg(); // on met à jour le background
+    updateTypedBg();
   }
 
-  // Navigation pages et redirection...
-});
-
-  
-  const pages = {
-    home: document.getElementById("home"),
-    catalogue: document.getElementById("catalogue"),
-    albums: document.getElementById("albums"),
-    singles: document.getElementById("singles"),
-    ep: document.getElementById("ep")
-  };
-
-  /* 🔧 DISCOGRAPHIE TADONIJI */
-  const music = {
-    albums: [
-      {
-        title: "Genesis",
-        link: "https://playlist.link/genesis"
-      },
-      {
-        title: "Paradox",
-        link: "https://odesli.co/paradox"
-      },
-      {
-        title: "Anachronos",
-        link: "Erreur interne"
-      },
-      {
-        title: "Timefall",
-        link: "https://album.link/timefall"
-      },
-      {
-        title: "Enemy",
-        link: "Erreur interne"
-      }
-    ],
-
-    singles: [
-      {
-        title: "Stand",
-        link: "https://song.link/stand"
-      },
-      {
-        title: "The Voices",
-        link: "Erreur interne"
-      },
-      {
-        title: "Travel Spirit",
-        link: "Erreur interne"
-      }
-    ],
-
-    ep: [] // volontairement vide si tu ne veux pas séparer albums / EP
-  };
-
-  /* 🧠 Génération des listes */
-  function populate() {
-    const catalogue = [];
-
-    music.albums.forEach(a => catalogue.push(a.title));
-    music.singles.forEach(s => catalogue.push(s.title));
-
-    document.getElementById("catalogue-list").innerHTML =
-      catalogue.map(t => `<li>${t}</li>`).join("");
-
-    document.getElementById("albums-list").innerHTML =
-      music.albums.map(a => `<li>${a.title}</li>`).join("");
-
-    document.getElementById("singles-list").innerHTML =
-      music.singles.map(s => `<li>${s.title}</li>`).join("");
-
-    document.getElementById("ep-list").innerHTML =
-      "<li>—</li>";
-  }
-
-  populate();
-
-  function show(page) {
-    Object.values(pages).forEach(p => p.classList.add("hidden"));
-    pages[page].classList.remove("hidden");
-  }
-
-  function reset() {
-    typed = "";
-    show("home");
-    updateTypedBg(); // efface le background
-  }
-
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      reset();
-      return;
-    }
-
-    if (e.key.length === 1) {
-      typed += e.key.toLowerCase();
-      typed = typed.slice(-40);
-    }
-
-    // Navigation pages
-    Object.keys(pages).forEach(page => {
-      if (typed.includes(page)) show(page);
-    });
-
-    // Redirections titres
-    [...music.albums, ...music.singles].forEach(item => {
-      if (typed.includes(item.title.toLowerCase())) {
-        window.open(item.link, "_blank");
-        typed = "";
-      }
-    });
+  // Esc
+  Object.keys(pages).forEach(page => {
+    if(typed.includes(page)) show(page);
   });
-</script>
 
+  // titres
+  [...music.albums, ...music.singles].forEach(item => {
+    if(typed.includes(item.title.toLowerCase())) {
+      window.open(item.link, "_blank");
+      typed = "";
+      updateTypedBg();
+    }
+  });
+});
+</script>
 
 </body>
 </html>
