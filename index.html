@@ -102,6 +102,16 @@
 
     .hint { margin-top: 1.5rem; font-size: 0.9em; color: #666; }
   </style>
+  <script>
+  // Détection mobile ou tablette via l'User-Agent et la taille de l'écran
+  const isMobileDevice = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+                         || (window.matchMedia("(max-width: 768px)").matches && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
+
+  if (isMobileDevice) {
+    // Redirige vers la page du baladeur cyberpunk
+    window.location.replace("mobile.html");
+  }
+  </script>
 </head>
 <body>
 
