@@ -1,1 +1,1007 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tadoniji // Chronav Player</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['"Share Tech Mono"', 'monospace'],
+            cyber: ['"Chakra Petch"', 'sans-serif'],
+          },
+          colors: {
+            cyberNeon: '#00f3ff',
+            cyberPink: '#ff0055',
+            cyberGreen: '#00ff66',
+            cyberYellow: '#ffe600',
+            deckBg: '#090b10',
+            deckSurface: '#121620',
+          },
+          boxShadow: {
+            'neon-cyan': '0 0 15px rgba(0, 243, 255, 0.4), inset 0 0 10px rgba(0, 243, 255, 0.2)',
+            'neon-pink': '0 0 15px rgba(255, 0, 85, 0.4), inset 0 0 10px rgba(255, 0, 85, 0.2)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --neon-cyan: #00f3ff;
+      --neon-pink: #ff0055;
+      --neon-green: #00ff66;
+    }
+
+    body {
+      background-color: #050608;
+      background-image: 
+        radial-gradient(circle at 50% 12%, rgba(0, 243, 255, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 80% 88%, rgba(255, 0, 85, 0.06) 0%, transparent 50%),
+        linear-gradient(rgba(10, 14, 23, 0.95), rgba(6, 8, 12, 0.98));
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+
+    /* Screen and CRT Scanlines */
+    .crt-screen {
+      position: relative;
+      background: radial-gradient(circle at 50% 50%, #0e1a22 0%, #050a0d 100%);
+      box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.95), 0 0 15px rgba(0, 243, 255, 0.25);
+    }
+    .crt-screen::before {
+      content: " ";
+      display: block;
+      position: absolute;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+      background-size: 100% 4px;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0.65;
+    }
+    .crt-screen::after {
+      content: " ";
+      display: block;
+      position: absolute;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: radial-gradient(circle at 50% 50%, transparent 65%, rgba(0,0,0,0.7) 100%);
+      pointer-events: none;
+      z-index: 11;
+    }
+
+    .cyber-chassis {
+      background: linear-gradient(150deg, #171d2b, #0c1017);
+      box-shadow: 
+        0 20px 40px -15px rgba(0,0,0,0.9),
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -2px 4px rgba(0,0,0,0.85);
+    }
+
+    .clip-corner-cut {
+      clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+    }
+    .clip-screen {
+      clip-path: polygon(0 8px, 8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px));
+    }
+
+    .glow-cyan {
+      text-shadow: 0 0 8px rgba(0, 243, 255, 0.7), 0 0 20px rgba(0, 243, 255, 0.3);
+    }
+    .glow-pink {
+      text-shadow: 0 0 8px rgba(255, 0, 85, 0.7), 0 0 20px rgba(255, 0, 85, 0.3);
+    }
+    .glow-green {
+      text-shadow: 0 0 8px rgba(0, 255, 102, 0.7);
+    }
+
+    @keyframes spinDisc {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .spin-active {
+      animation: spinDisc 6s linear infinite;
+    }
+    .spin-paused {
+      animation-play-state: paused;
+    }
+
+    /* Range Scrubber Style */
+    input[type=range]::-webkit-slider-thumb {
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 2px;
+      background: #00f3ff;
+      cursor: pointer;
+      box-shadow: 0 0 6px #00f3ff;
+    }
+    input[type=range]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 2px;
+      background: #00f3ff;
+      cursor: pointer;
+      box-shadow: 0 0 6px #00f3ff;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-200 font-cyber flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 antialiased selection:bg-cyberNeon selection:text-black">
+
+  <!-- Audio Element for real 30s track previews -->
+  <audio id="audio-player" preload="metadata" crossorigin="anonymous"></audio>
+
+  <div class="w-full max-w-lg mx-auto flex flex-col gap-3">
+    
+    <!-- Top Cyber Deck Header -->
+    <header class="flex items-center justify-between px-3.5 py-2 bg-black/60 border border-cyan-500/30 rounded-xl text-xs font-mono tracking-wider backdrop-blur-md">
+      <div class="flex items-center gap-2">
+        <span class="inline-block w-2.5 h-2.5 rounded-full bg-cyberGreen animate-ping"></span>
+        <span class="text-cyberGreen font-bold glow-green">TADONIJI/CHRONAV // CHRONAV-PLAYER</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="audio-status-led" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700">PRÊT</span>
+      </div>
+    </header>
+
+    <!-- Main Deck Chassis -->
+    <main class="cyber-chassis rounded-3xl p-3.5 sm:p-5 border border-slate-700/60 relative overflow-hidden">
+      <!-- Metallic Corner Screws -->
+      <div class="absolute top-2.5 left-2.5 w-2.5 h-2.5 rounded-full bg-slate-600 border border-black/80"></div>
+      <div class="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-slate-600 border border-black/80"></div>
+      <div class="absolute bottom-2.5 left-2.5 w-2.5 h-2.5 rounded-full bg-slate-600 border border-black/80"></div>
+      <div class="absolute bottom-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-slate-600 border border-black/80"></div>
+
+      <!-- Cyber CRT Screen Monitor -->
+      <div class="crt-screen clip-screen border border-cyan-500/40 rounded-2xl p-4 sm:p-5 text-cyberNeon flex flex-col relative overflow-hidden min-h-[380px] sm:min-h-[410px] justify-between">
+        
+        <!-- Screen Top HUD -->
+        <div class="flex justify-between items-center z-20 text-xs font-mono border-b border-cyan-500/20 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="bg-cyan-950 text-cyberNeon px-2 py-0.5 rounded border border-cyan-500/40 font-bold" id="format-badge">ALBUM</span>
+            <span class="text-slate-400 font-mono text-[11px]" id="track-index">TRACK 01/10</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-cyberPink font-bold text-[11px]">
+            <span id="preview-indicator" class="opacity-40">● EXTRAIT En lecture</span>
+            <span id="time-display" class="font-mono text-cyan-300">00:00 / 00:30</span>
+          </div>
+        </div>
+
+        <!-- Center Stage: Holographic Rotating Cartridge with Real Artwork -->
+        <div class="relative my-auto py-2 z-20 flex flex-col items-center justify-center">
+          
+          <div id="art-container" class="relative w-44 h-44 sm:w-52 sm:h-52 flex items-center justify-center transition-all duration-300 cursor-pointer" title="Touchez pour écouter l'extrait / Glissez pour changer">
+            <div id="disc-aura" class="absolute inset-0 rounded-full bg-cyberNeon/15 blur-xl transition-all duration-500"></div>
+
+            <div id="disc-wheel" class="relative w-full h-full rounded-full border-2 border-dashed border-cyan-400/60 p-2 flex items-center justify-center bg-black/80 shadow-neon-cyan transition-transform duration-300">
+              <div id="artwork-box" class="w-full h-full rounded-full overflow-hidden flex items-center justify-center relative bg-slate-900 border border-cyan-500/40">
+                <img id="cover-img" src="" alt="Album cover" class="w-full h-full object-cover transition-opacity duration-300 opacity-90">
+                <div id="artwork-svg" class="absolute inset-0 w-full h-full hidden"></div>
+              </div>
+              <!-- Center Hub -->
+              <div class="absolute w-12 h-12 rounded-full bg-slate-900 border-2 border-cyan-400 flex items-center justify-center shadow-lg">
+                <div id="disc-spindle-dot" class="w-4 h-4 rounded-full bg-cyberPink shadow-[0_0_8px_#ff0055]"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Metadata Display -->
+          <div class="text-center mt-3 z-20 w-full px-2">
+            <h2 id="track-title" class="text-xl sm:text-2xl font-bold font-cyber tracking-wide text-white glow-cyan truncate">
+              PARADOX
+            </h2>
+            <p id="artist-tag" class="text-xs font-mono text-cyan-400 tracking-widest uppercase mt-0.5 opacity-90">
+              // TADONIJI // 
+            </p>
+          </div>
+        </div>
+
+        <!-- Audio Scrubber & Dynamic Spectrum Visualizer -->
+        <div class="z-20 border-t border-cyan-500/20 pt-2 flex flex-col gap-1.5">
+          <div class="flex items-center gap-2">
+            <input id="audio-seek" type="range" min="0" max="100" value="0" step="0.1" 
+                   class="w-full h-1.5 bg-black/60 rounded-lg appearance-none cursor-pointer border border-cyan-500/30">
+          </div>
+
+          <!-- 16-Band Audio Spectrum -->
+          <div id="bars-container" class="grid grid-cols-16 gap-1 h-5 w-full items-end bg-black/50 p-1 rounded border border-cyan-500/30">
+            <!-- 16 bars populated via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Filter Switches -->
+      <div class="grid grid-cols-4 gap-1.5 mt-3 text-xs font-mono">
+        <button data-cat="all" class="cat-btn active py-2 rounded-lg bg-cyan-500/20 text-cyberNeon border border-cyan-400 font-bold transition-all shadow-[0_0_8px_rgba(0,243,255,0.3)]">
+          [ TOUT ]
+        </button>
+        <button data-cat="albums" class="cat-btn py-2 rounded-lg bg-slate-900/80 text-slate-400 border border-slate-700 font-bold hover:text-white transition-all">
+          ALBUMS
+        </button>
+        <button data-cat="singles" class="cat-btn py-2 rounded-lg bg-slate-900/80 text-slate-400 border border-slate-700 font-bold hover:text-white transition-all">
+          SINGLES
+        </button>
+        <button data-cat="ep" class="cat-btn py-2 rounded-lg bg-slate-900/80 text-slate-400 border border-slate-700 font-bold hover:text-white transition-all">
+          EP
+        </button>
+      </div>
+
+      <!-- Hardware Deck Controls -->
+      <div class="mt-4 flex flex-col gap-2.5">
+        
+        <!-- Big Primary Action: Full Stream Link -->
+        <a id="stream-link-btn" href="#" target="_blank" rel="noopener noreferrer" 
+           class="group relative w-full py-3.5 px-4 rounded-xl font-cyber font-bold text-base flex items-center justify-center gap-3 transition-all duration-200 overflow-hidden clip-corner-cut bg-gradient-to-r from-cyberPink to-purple-600 text-white shadow-neon-pink hover:scale-[1.01] active:scale-[0.98]">
+          <span class="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
+          </svg>
+          <span id="stream-btn-text">ÉCOUTER EN ENTIER</span>
+          <span id="stream-platform-badge" class="text-xs font-mono bg-black/40 px-2 py-0.5 rounded border border-white/20">STREAM ↗</span>
+        </a>
+
+        <!-- Physical Buttons: Prev / Preview / Next -->
+        <div class="grid grid-cols-4 gap-2">
+          <button id="btn-prev" class="flex flex-col items-center justify-center py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:bg-slate-900 border-t border-slate-600 border-b-2 border-black text-slate-300 transition-all active:translate-y-0.5">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+            <span class="text-[9px] font-mono mt-0.5 text-slate-400">PRÉC</span>
+          </button>
+
+          <!-- 30s Real Preview Play / Pause Button -->
+          <button id="btn-preview" class="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-cyan-950/70 hover:bg-cyan-900/70 active:bg-cyan-950 border border-cyan-500/50 text-cyberNeon shadow-[0_0_10px_rgba(0,243,255,0.2)] transition-all active:translate-y-0.5">
+            <div id="preview-btn-icon" class="w-3.5 h-3.5 rounded-full bg-cyberNeon shadow-[0_0_6px_#00f3ff]"></div>
+            <span id="preview-btn-label" class="text-xs font-bold font-mono tracking-wider">ÉCOUTER EXTRAIT</span>
+          </button>
+
+          <button id="btn-next" class="flex flex-col items-center justify-center py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:bg-slate-900 border-t border-slate-600 border-b-2 border-black text-slate-300 transition-all active:translate-y-0.5">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+            <span class="text-[9px] font-mono mt-0.5 text-slate-400">SUIV</span>
+          </button>
+        </div>
+
+        <!-- Terminal Search & Easter Egg Random Dive -->
+        <div class="flex items-center gap-2 pt-1">
+          <div class="relative flex-1">
+            <input id="terminal-input" type="text" placeholder="Taper un titre ou 'tadoniji'..." 
+                   class="w-full bg-black/80 border border-slate-700 focus:border-cyberNeon rounded-lg px-3 py-2 text-xs font-mono text-cyan-300 placeholder-slate-600 focus:outline-none transition-colors">
+            <span class="absolute right-2.5 top-2.5 text-[10px] text-slate-600 font-mono">⌘ TITRE</span>
+          </div>
+
+          <button id="btn-random" title="Morceau Aléatoire" class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-mono text-cyberYellow flex items-center gap-1.5 transition-colors">
+            <span>🎲</span>
+            <span class="font-bold">RANDOM</span>
+          </button>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Quick Track Drawer -->
+    <details class="bg-black/50 border border-slate-800 rounded-xl p-2.5 text-xs font-mono text-slate-400">
+      <summary class="cursor-pointer text-slate-300 hover:text-cyberNeon font-bold flex justify-between items-center px-1">
+        <span>// CATALOGUE TADONIJI (<span id="total-badge">11</span> TITRES)</span>
+        <span class="text-[10px] text-slate-500">DÉPLIER ▾</span>
+      </summary>
+      <div id="quick-list" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-3 pt-2 border-t border-slate-800 max-h-48 overflow-y-auto"></div>
+    </details>
+
+    <footer class="text-center text-[11px] font-mono text-slate-500 py-1">
+      TADONIJI DISCOGRAPHY • SWIPE GAUCHE/DROITE SUR LA CARTOUCHE
+    </footer>
+
+  </div>
+
+  <script>
+    /**
+     * Discographie Tadoniji avec liens de streaming originaux.
+     * Les extraits audio et les pochettes sont résolus dynamiquement via iTunes/Deezer.
+     */
+    const DISCOGRAPHY = [
+      // ALBUMS
+      {
+        id: "paradox",
+        title: "Paradox",
+        searchQuery: "tadoniji paradox",
+        type: "ALBUM",
+        cat: "albums",
+        link: "https://ffm.to/b11cce5032a30ac6078d3f36500dcc57168eb88f930241ce",
+        color: "#00f3ff",
+        previewUrl: null,
+        coverUrl: null,
+        svgVariant: "portal"
+      },
+      {
+        id: "timefall",
+        title: "Timefall",
+        searchQuery: "tadoniji timefall",
+        type: "ALBUM",
+        cat: "albums",
+        link: "https://ffm.to/469a9af3f9422bb1b250c39698d25116bcfdc1a919cea922",
+        color: "#ff0055",
+        previewUrl: null,
+        coverUrl: null,
+        svgVariant: "hourGlass"
+      },
+      {
+        id: "enemy",
+        title: "Enemy",
+        searchQuery: "tadoniji enemy",
+        type: "ALBUM",
+        cat: "albums",
+        link: "https://ffm.to/486fca769cd12b65ca0fc23bc7d94c8888d20562c5482110",
+        color: "#ff3300",
+        previewUrl: null,
+        coverUrl: null,
+        svgVariant: "glitchSkull"
+      },
+      {
+        id: "travel-spirit-album",
+        title: "Travel Spirit",
+        searchQuery: "tadoniji travel spirit",
+        type: "ALBUM",
+        cat: "albums",
+        link: "https://www.youtube.com/watch?v=r0TpHyHKxOs&list=OLAK5uy_nG4VKgFfc8YF4BbXzPLVpX5mpJZUld9E8",
+        color: "#ffe600",
+        previewUrl: null,
+        coverUrl: null,
+        svgVariant: "horizon"
+      },
+
+      // SINGLES
+      {
+        id: "stand",
+        title: "Stand",
+        searchQuery: "tadoniji stand",
+        type: "SINGLE",
+        cat: "singles",
+        link: "https://ffm.to/19f7445d0f4915364db050769f141a5a40d7665385beaeda",
+        color: "#00ff66",
+        previewUrl: null,
+        coverUrl: null,
+        svgVariant: "pillar"
+      },
+      {
+        id: "the-voices",
+        title: "The Voices",
+        searchQuery: "tadoniji the voices",
+        type: "SINGLE",
+        cat: "singles",
+        link: "https://ffm.to/2460fe01131c5d8685fbc109a5fedb8da89c892cf92de212",
+        color: "#b000ff",
+        previewUrl: null,
+        coverUrl: null,
+        svgVariant: "frequencies"
+      },
+      {
+        id: "voidcall",
+        title: "Voidcall",
+        searchQuery: "tadoniji voidcall",
+        type: "SINGLE",
+        cat: "singles",
+        link: "https://ffm.to/1be5058c46975b6e1e5cd585613ea770ca8dafe904681b73",
+        color: "#00d0ff",
+        previewUrl: null,
+        coverUrl: null,
+        svgVariant: "singularity"
+      },
+      {
+        id: "fracture",
+        title: "Fracture",
+        searchQuery: "tadoniji fracture",
+        type: "SINGLE",
+        cat: "singles",
+        link: "https://ffm.to/88f60aee43fd2894dc28b81633bf25f8363711b8c310dbdc",
+        color: "#ff0088",
+        previewUrl: null,
+        coverUrl: null,
+        svgVariant: "crystalShard"
+      },
+      {
+        id: "moonrise",
+        title: "Moonrise",
+        searchQuery: "tadoniji moonrise",
+        type: "SINGLE",
+        cat: "singles",
+        link: "https://ffm.to/194c0893857f8572a1a1fbf4401635f025c3e5da250c7e5e",
+        color: "#38bdf8",
+        previewUrl: null,
+        coverUrl: null,
+        svgVariant: "neonMoon"
+      },
+      {
+        id: "travel-spirit-single",
+        title: "Travel Spirit (Single)",
+        searchQuery: "tadoniji travel spirit",
+        type: "SINGLE",
+        cat: "singles",
+        link: "https://www.youtube.com/watch?v=r0TpHyHKxOs&list=OLAK5uy_nG4VKgFfc8YF4BbXzPLVpX5mpJZUld9E8",
+        color: "#fbbf24",
+        previewUrl: null,
+        coverUrl: null,
+        svgVariant: "horizon"
+      },
+
+      // EP
+      {
+        id: "into-the-dark",
+        title: "Into the Dark",
+        searchQuery: "tadoniji into the dark",
+        type: "EP",
+        cat: "ep",
+        link: "https://ffm.to/65500a008ffda1382675a840ea3237d27a4088f55fb425f5",
+        color: "#7928ca",
+        previewUrl: null,
+        coverUrl: null,
+        svgVariant: "eclipse"
+      }
+    ];
+
+    let filteredList = [...DISCOGRAPHY];
+    let currentIndex = 0;
+    let isPlaying = false;
+
+    // DOM Elements
+    const audio = document.getElementById("audio-player");
+    const trackTitleEl = document.getElementById("track-title");
+    const formatBadgeEl = document.getElementById("format-badge");
+    const trackIndexEl = document.getElementById("track-index");
+    const timeDisplayEl = document.getElementById("time-display");
+    const previewIndicatorEl = document.getElementById("preview-indicator");
+    const coverImgEl = document.getElementById("cover-img");
+    const artworkSvgEl = document.getElementById("artwork-svg");
+    const discWheelEl = document.getElementById("disc-wheel");
+    const discAuraEl = document.getElementById("disc-aura");
+    const discSpindleDot = document.getElementById("disc-spindle-dot");
+    const streamLinkBtn = document.getElementById("stream-link-btn");
+    const streamBtnText = document.getElementById("stream-btn-text");
+    const streamPlatformBadge = document.getElementById("stream-platform-badge");
+    const btnPreview = document.getElementById("btn-preview");
+    const previewBtnLabel = document.getElementById("preview-btn-label");
+    const previewBtnIcon = document.getElementById("preview-btn-icon");
+    const audioStatusLed = document.getElementById("audio-status-led");
+    const audioSeek = document.getElementById("audio-seek");
+    const barsContainer = document.getElementById("bars-container");
+    const terminalInput = document.getElementById("terminal-input");
+    const quickListContainer = document.getElementById("quick-list");
+    const totalBadgeEl = document.getElementById("total-badge");
+
+    // Spectrum Bars
+    const bars = [];
+    for (let i = 0; i < 16; i++) {
+      const bar = document.createElement("div");
+      bar.className = "w-full bg-cyan-400 rounded-t-sm transition-all duration-75";
+      bar.style.height = "15%";
+      barsContainer.appendChild(bar);
+      bars.push(bar);
+    }
+
+    // Web Audio Click & Frequency Analyzer
+    let audioCtx = null;
+    let analyser = null;
+    let dataArray = null;
+    let animFrameId = null;
+
+    function initWebAudio() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+        try {
+          const source = audioCtx.createMediaElementSource(audio);
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 64;
+          source.connect(analyser);
+          analyser.connect(audioCtx.destination);
+          dataArray = new Uint8Array(analyser.frequencyBinCount);
+        } catch (e) {
+          analyser = null;
+        }
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playMechanicalClick(pitch = 750) {
+      try {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new AudioContextClass();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(pitch, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+      } catch (err) {}
+    }
+
+    function updateVisualizer() {
+      if (!isPlaying) {
+        bars.forEach(b => b.style.height = "12%");
+        return;
+      }
+
+      const track = filteredList[currentIndex];
+
+      if (analyser && dataArray) {
+        try {
+          analyser.getByteFrequencyData(dataArray);
+          for (let i = 0; i < 16; i++) {
+            const val = dataArray[i * 2] || 0;
+            const percent = Math.max(12, Math.min(100, (val / 255) * 100));
+            bars[i].style.height = `${percent}%`;
+            bars[i].style.backgroundColor = track.color;
+          }
+        } catch (e) {
+          fallbackVisualizer(track);
+        }
+      } else {
+        fallbackVisualizer(track);
+      }
+
+      animFrameId = requestAnimationFrame(updateVisualizer);
+    }
+
+    function fallbackVisualizer(track) {
+      bars.forEach((b) => {
+        const randVal = Math.floor(Math.random() * 65) + 20;
+        b.style.height = `${randVal}%`;
+        b.style.backgroundColor = track.color;
+      });
+    }
+
+    /**
+     * Recherche automatique de l'extrait audio et de la jaquette
+     */
+    async function resolveTrackMedia(track) {
+      if (track.previewUrl && track.coverUrl) return;
+
+      const query = encodeURIComponent(track.searchQuery);
+      const url = `https://itunes.apple.com/search?term=${query}&entity=song&limit=1`;
+
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results && data.results.length > 0) {
+            const item = data.results[0];
+            if (item.previewUrl) {
+              track.previewUrl = item.previewUrl;
+            }
+            if (item.artworkUrl100) {
+              // Obtenir la résolution 600x600 HD
+              track.coverUrl = item.artworkUrl100.replace("100x100bb", "600x600bb");
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Recherche média iTunes non disponible, essai fallback Deezer...", e);
+      }
+
+      // Si toujours aucun média trouvé, on applique une jaquette SVG personnalisée
+      if (!track.coverUrl) {
+        track.hasCustomSvg = true;
+      }
+    }
+
+    // Précharge tous les morceaux en arrière-plan
+    async function preloadAllTracksMedia() {
+      for (const track of DISCOGRAPHY) {
+        resolveTrackMedia(track);
+      }
+    }
+
+    function generateCoverSVG(variant, color) {
+      switch (variant) {
+        case "portal":
+          return `
+            <svg viewBox="0 0 200 200" class="w-full h-full">
+              <rect width="200" height="200" fill="#04070c"/>
+              <circle cx="100" cy="100" r="80" fill="${color}" fill-opacity="0.2"/>
+              <circle cx="100" cy="100" r="65" stroke="${color}" stroke-width="2" stroke-dasharray="8 4" fill="none"/>
+              <circle cx="100" cy="100" r="45" stroke="#fff" stroke-width="2" fill="none"/>
+              <polygon points="100,50 145,130 55,130" stroke="${color}" stroke-width="2" fill="none"/>
+            </svg>
+          `;
+        case "hourGlass":
+          return `
+            <svg viewBox="0 0 200 200" class="w-full h-full">
+              <rect width="200" height="200" fill="#0c0408"/>
+              <polygon points="50,40 150,40 100,100" fill="${color}" fill-opacity="0.3" stroke="${color}" stroke-width="2"/>
+              <polygon points="100,100 150,160 50,160" fill="${color}" fill-opacity="0.5" stroke="${color}" stroke-width="2"/>
+              <circle cx="100" cy="100" r="18" fill="none" stroke="#fff" stroke-width="2"/>
+            </svg>
+          `;
+        case "glitchSkull":
+          return `
+            <svg viewBox="0 0 200 200" class="w-full h-full">
+              <rect width="200" height="200" fill="#0d0303"/>
+              <path d="M60 70 Q100 25 140 70 Q150 115 130 140 H70 Q50 115 60 70 Z" fill="none" stroke="${color}" stroke-width="2.5"/>
+              <circle cx="80" cy="85" r="12" fill="${color}"/>
+              <circle cx="120" cy="85" r="12" fill="${color}"/>
+              <rect x="85" y="125" width="30" height="15" fill="none" stroke="${color}" stroke-width="1.5"/>
+            </svg>
+          `;
+        case "horizon":
+          return `
+            <svg viewBox="0 0 200 200" class="w-full h-full">
+              <rect width="200" height="200" fill="#0d0b03"/>
+              <circle cx="100" cy="95" r="50" fill="${color}" fill-opacity="0.8"/>
+              <line x1="0" y1="95" x2="200" y2="95" stroke="#000" stroke-width="4"/>
+              <line x1="0" y1="105" x2="200" y2="105" stroke="#000" stroke-width="4"/>
+              <line x1="0" y1="117" x2="200" y2="117" stroke="#000" stroke-width="4"/>
+              <line x1="0" y1="132" x2="200" y2="132" stroke="#000" stroke-width="5"/>
+            </svg>
+          `;
+        case "pillar":
+          return `
+            <svg viewBox="0 0 200 200" class="w-full h-full">
+              <rect width="200" height="200" fill="#030c05"/>
+              <rect x="85" y="30" width="30" height="140" fill="none" stroke="${color}" stroke-width="2"/>
+              <line x1="70" y1="170" x2="130" y2="170" stroke="${color}" stroke-width="3"/>
+              <circle cx="100" cy="100" r="40" stroke="${color}" stroke-width="1.5" stroke-dasharray="6 3" fill="none"/>
+            </svg>
+          `;
+        case "frequencies":
+          return `
+            <svg viewBox="0 0 200 200" class="w-full h-full">
+              <rect width="200" height="200" fill="#09030c"/>
+              <path d="M20 100 Q60 20 100 100 T180 100" fill="none" stroke="${color}" stroke-width="2.5"/>
+              <circle cx="100" cy="100" r="16" fill="${color}" fill-opacity="0.6"/>
+            </svg>
+          `;
+        case "singularity":
+          return `
+            <svg viewBox="0 0 200 200" class="w-full h-full">
+              <rect width="200" height="200" fill="#02080d"/>
+              <circle cx="100" cy="100" r="6" fill="#fff"/>
+              <circle cx="100" cy="100" r="30" stroke="${color}" stroke-width="2" fill="none"/>
+              <circle cx="100" cy="100" r="60" stroke="${color}" stroke-width="1.5" stroke-dasharray="10 6" fill="none"/>
+            </svg>
+          `;
+        case "crystalShard":
+          return `
+            <svg viewBox="0 0 200 200" class="w-full h-full">
+              <rect width="200" height="200" fill="#0c0207"/>
+              <polygon points="100,20 140,80 120,170 80,170 60,80" fill="none" stroke="${color}" stroke-width="2.5"/>
+            </svg>
+          `;
+        case "neonMoon":
+          return `
+            <svg viewBox="0 0 200 200" class="w-full h-full">
+              <rect width="200" height="200" fill="#02090f"/>
+              <path d="M80 40 A50 50 0 1 0 140 140 A60 60 0 0 1 80 40 Z" fill="${color}" fill-opacity="0.3" stroke="${color}" stroke-width="2.5"/>
+            </svg>
+          `;
+        case "eclipse":
+        default:
+          return `
+            <svg viewBox="0 0 200 200" class="w-full h-full">
+              <rect width="200" height="200" fill="#06020c"/>
+              <circle cx="100" cy="100" r="60" fill="none" stroke="${color}" stroke-width="4"/>
+              <circle cx="92" cy="95" r="54" fill="#06020c"/>
+            </svg>
+          `;
+      }
+    }
+
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return "00:00";
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    async function updateTrackUI() {
+      if (filteredList.length === 0) return;
+      const track = filteredList[currentIndex];
+
+      trackTitleEl.textContent = track.title.toUpperCase();
+      formatBadgeEl.textContent = track.type;
+      trackIndexEl.textContent = `TRACK ${String(currentIndex + 1).padStart(2, '0')}/${String(filteredList.length).padStart(2, '0')}`;
+
+      // Si pas encore résolu, tenter de récupérer la pochette et l'audio
+      if (!track.previewUrl && !track.hasCustomSvg) {
+        audioStatusLed.textContent = "SYNCHRONISATION...";
+        audioStatusLed.className = "px-2 py-0.5 rounded text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-700 animate-pulse";
+        await resolveTrackMedia(track);
+      }
+
+      // Gestion de la pochette officielle
+      if (track.coverUrl) {
+        coverImgEl.src = track.coverUrl;
+        coverImgEl.classList.remove("hidden");
+        artworkSvgEl.classList.add("hidden");
+      } else {
+        coverImgEl.classList.add("hidden");
+        artworkSvgEl.classList.remove("hidden");
+        artworkSvgEl.innerHTML = generateCoverSVG(track.svgVariant, track.color);
+      }
+
+      discWheelEl.style.borderColor = track.color;
+      discAuraEl.style.backgroundColor = track.color + "25";
+      discWheelEl.style.boxShadow = `0 0 20px ${track.color}66`;
+      discSpindleDot.style.backgroundColor = track.color;
+
+      // Bouton streaming
+      if (track.link && track.link.trim() !== "") {
+        streamLinkBtn.href = track.link;
+        streamLinkBtn.classList.remove("opacity-50", "pointer-events-none");
+        const isYt = track.link.includes("youtube");
+        streamPlatformBadge.textContent = isYt ? "YOUTUBE ↗" : "FFM.TO ↗";
+        streamBtnText.textContent = "ÉCOUTER EN ENTIER";
+      } else {
+        streamLinkBtn.removeAttribute("href");
+        streamLinkBtn.classList.add("opacity-50", "pointer-events-none");
+        streamBtnText.textContent = "LIEN NON DISPONIBLE";
+      }
+
+      // Bouton extrait
+      if (track.previewUrl) {
+        btnPreview.classList.remove("opacity-50", "pointer-events-none");
+        previewBtnLabel.textContent = isPlaying ? "PAUSE EXTRAIT" : "ÉCOUTER EXTRAIT (30s)";
+        audioStatusLed.textContent = isPlaying ? "LECTURE: 30s" : "EXTRAIT PRÊT";
+        audioStatusLed.className = "px-2 py-0.5 rounded text-[10px] bg-cyan-950 text-cyberNeon border border-cyberNeon";
+      } else {
+        previewBtnLabel.textContent = "CHARGEMENT EXTRAIT...";
+        audioStatusLed.textContent = "EN ATTENTE";
+      }
+
+      document.querySelectorAll(".quick-item").forEach(item => {
+        if (item.dataset.id === track.id) {
+          item.classList.add("border-cyberNeon", "bg-cyan-950/60", "text-cyberNeon");
+        } else {
+          item.classList.remove("border-cyberNeon", "bg-cyan-950/60", "text-cyberNeon");
+        }
+      });
+    }
+
+    async function loadTrack(track, autoPlay = false) {
+      audio.pause();
+      audio.currentTime = 0;
+      audioSeek.value = 0;
+      timeDisplayEl.textContent = "00:00 / 00:30";
+
+      await updateTrackUI();
+
+      if (track.previewUrl) {
+        audio.src = track.previewUrl;
+        audio.load();
+        if (autoPlay) {
+          playAudio();
+        } else {
+          stopAudioUI();
+        }
+      } else {
+        audio.removeAttribute("src");
+        stopAudioUI();
+      }
+    }
+
+    function playAudio() {
+      const track = filteredList[currentIndex];
+      if (!track.previewUrl) {
+        // En cas de délai réseau, on tente une dernière fois
+        resolveTrackMedia(track).then(() => {
+          if (track.previewUrl) {
+            audio.src = track.previewUrl;
+            audio.play().then(onPlaySuccess).catch(stopAudioUI);
+          }
+        });
+        return;
+      }
+
+      initWebAudio();
+      audio.play().then(onPlaySuccess).catch(err => {
+        console.warn("Lecture bloquée : interaction nécessaire", err);
+        stopAudioUI();
+      });
+    }
+
+    function onPlaySuccess() {
+      isPlaying = true;
+      discWheelEl.classList.add("spin-active");
+      discWheelEl.classList.remove("spin-paused");
+      previewIndicatorEl.classList.remove("opacity-40");
+      previewIndicatorEl.classList.add("text-cyberGreen", "animate-pulse");
+      previewBtnLabel.textContent = "PAUSE EXTRAIT";
+      previewBtnIcon.className = "w-3.5 h-3.5 rounded bg-cyberPink shadow-[0_0_6px_#ff0055]";
+      audioStatusLed.textContent = "LECTURE: 30s";
+      audioStatusLed.className = "px-2 py-0.5 rounded text-[10px] bg-cyan-950 text-cyberNeon border border-cyberNeon";
+      cancelAnimationFrame(animFrameId);
+      updateVisualizer();
+    }
+
+    function pauseAudio() {
+      audio.pause();
+      stopAudioUI();
+    }
+
+    function stopAudioUI() {
+      isPlaying = false;
+      discWheelEl.classList.add("spin-paused");
+      previewIndicatorEl.classList.add("opacity-40");
+      previewIndicatorEl.classList.remove("text-cyberGreen", "animate-pulse");
+      previewBtnLabel.textContent = "ÉCOUTER EXTRAIT (30s)";
+      previewBtnIcon.className = "w-3.5 h-3.5 rounded-full bg-cyberNeon shadow-[0_0_6px_#00f3ff]";
+      audioStatusLed.textContent = "EN PAUSE";
+      audioStatusLed.className = "px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700";
+      cancelAnimationFrame(animFrameId);
+      bars.forEach(b => b.style.height = "12%");
+    }
+
+    function togglePlay() {
+      playMechanicalClick(900);
+      if (isPlaying) {
+        pauseAudio();
+      } else {
+        playAudio();
+      }
+    }
+
+    // Audio Event Listeners
+    audio.addEventListener("timeupdate", () => {
+      if (!isNaN(audio.duration) && audio.duration > 0) {
+        const percent = (audio.currentTime / audio.duration) * 100;
+        audioSeek.value = percent;
+        timeDisplayEl.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+      }
+    });
+
+    audio.addEventListener("ended", () => {
+      stopAudioUI();
+      audioSeek.value = 0;
+    });
+
+    audio.addEventListener("loadedmetadata", () => {
+      timeDisplayEl.textContent = `00:00 / ${formatTime(audio.duration)}`;
+    });
+
+    // Seek scrubber interaction
+    audioSeek.addEventListener("input", (e) => {
+      if (!isNaN(audio.duration) && audio.duration > 0) {
+        const seekTo = (e.target.value / 100) * audio.duration;
+        audio.currentTime = seekTo;
+      }
+    });
+
+    function changeTrack(direction) {
+      playMechanicalClick(650);
+      const wasPlaying = isPlaying;
+      if (direction === 'next') {
+        currentIndex = (currentIndex + 1) % filteredList.length;
+      } else {
+        currentIndex = (currentIndex - 1 + filteredList.length) % filteredList.length;
+      }
+      loadTrack(filteredList[currentIndex], wasPlaying);
+    }
+
+    function setFilter(cat) {
+      playMechanicalClick(750);
+      document.querySelectorAll(".cat-btn").forEach(btn => {
+        if (btn.dataset.cat === cat) {
+          btn.className = "cat-btn active py-2 rounded-lg bg-cyan-500/20 text-cyberNeon border border-cyan-400 font-bold transition-all shadow-[0_0_8px_rgba(0,243,255,0.3)]";
+        } else {
+          btn.className = "cat-btn py-2 rounded-lg bg-slate-900/80 text-slate-400 border border-slate-700 font-bold hover:text-white transition-all";
+        }
+      });
+
+      filteredList = cat === "all" ? [...DISCOGRAPHY] : DISCOGRAPHY.filter(item => item.cat === cat);
+      currentIndex = 0;
+      loadTrack(filteredList[currentIndex], false);
+      renderQuickList();
+    }
+
+    function renderQuickList() {
+      quickListContainer.innerHTML = "";
+      totalBadgeEl.textContent = filteredList.length;
+      filteredList.forEach((track, idx) => {
+        const itemBtn = document.createElement("button");
+        itemBtn.dataset.id = track.id;
+        itemBtn.className = `quick-item text-left p-2 rounded border border-slate-800 hover:border-slate-600 flex items-center justify-between transition-colors ${idx === currentIndex ? "border-cyberNeon bg-cyan-950/60 text-cyberNeon" : ""}`;
+        itemBtn.innerHTML = `
+          <span class="truncate pr-1"><span class="text-slate-600 mr-1.5">${String(idx + 1).padStart(2, '0')}.</span>${track.title}</span>
+          <span class="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-slate-400">${track.type}</span>
+        `;
+        itemBtn.addEventListener("click", () => {
+          playMechanicalClick(650);
+          currentIndex = idx;
+          loadTrack(filteredList[currentIndex], true);
+        });
+        quickListContainer.appendChild(itemBtn);
+      });
+    }
+
+    // Hardware Controls
+    document.getElementById("btn-prev").addEventListener("click", () => changeTrack('prev'));
+    document.getElementById("btn-next").addEventListener("click", () => changeTrack('next'));
+    btnPreview.addEventListener("click", togglePlay);
+
+    // Random Easter Egg
+    function triggerRandomDive() {
+      playMechanicalClick(1100);
+      const randIdx = Math.floor(Math.random() * filteredList.length);
+      currentIndex = randIdx;
+      loadTrack(filteredList[currentIndex], isPlaying);
+    }
+    document.getElementById("btn-random").addEventListener("click", triggerRandomDive);
+
+    // Filter Buttons
+    document.querySelectorAll(".cat-btn").forEach(btn => {
+      btn.addEventListener("click", () => setFilter(btn.dataset.cat));
+    });
+
+    // Touch Swipe Gestures on Art Container for Mobile
+    const artContainer = document.getElementById("art-container");
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    artContainer.addEventListener("click", togglePlay);
+
+    artContainer.addEventListener("touchstart", (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    artContainer.addEventListener("touchend", (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      const swipeDistance = touchEndX - touchStartX;
+      if (Math.abs(swipeDistance) > 40) {
+        if (swipeDistance > 0) {
+          changeTrack('prev');
+        } else {
+          changeTrack('next');
+        }
+      }
+    }, { passive: true });
+
+    // Terminal Keyboard Search & "tadoniji" easter egg
+    terminalInput.addEventListener("input", (e) => {
+      const val = e.target.value.toLowerCase().trim();
+      if (val.includes("tadoniji")) {
+        terminalInput.value = "";
+        triggerRandomDive();
+        return;
+      }
+
+      const foundIdx = filteredList.findIndex(t => t.title.toLowerCase().includes(val));
+      if (foundIdx !== -1 && val.length >= 3) {
+        currentIndex = foundIdx;
+        loadTrack(filteredList[currentIndex], false);
+      }
+    });
+
+    // Keyboard Shortcuts
+    window.addEventListener("keydown", (e) => {
+      if (document.activeElement === terminalInput) return;
+      if (e.key === "ArrowLeft") changeTrack('prev');
+      if (e.key === "ArrowRight") changeTrack('next');
+      if (e.key === " ") {
+        e.preventDefault();
+        togglePlay();
+      }
+    });
+
+    // Boot
+    preloadAllTracksMedia();
+    loadTrack(filteredList[currentIndex], false);
+    renderQuickList();
+  </script>
+</body>
+</html>
